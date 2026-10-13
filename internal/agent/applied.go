@@ -542,8 +542,17 @@ func (a *Agent) connect() (Connection, error) {
 	if f == nil {
 		// nothing to connect it to yet: no provider or subscription added,
 		// which said only that it can't be connected (Tystem on Discord)
-		if shown, hidden := provider.CatalogFor(a.ListsFor()); len(shown)+len(hidden) == 0 {
+		shown, hidden := provider.CatalogFor(a.ListsFor())
+		if len(shown)+len(hidden) == 0 {
 			return Connection{}, &NoModelsError{Agent: a.Name}
+		}
+		// magpie has models, and every one of them is taken out of the
+		// agent's lists (a picked model gone with its provider, one hidden
+		// by hand): saying the agent can't be connected sends the user
+		// looking at the agent, when its visibility is what emptied it
+		// (#1989)
+		if len(shown) == 0 {
+			return Connection{}, fmt.Errorf("every one of magpie's models is taken out of %s's lists: nothing is left for it to pick — check what its model picker is narrowed to", a.Name)
 		}
 		return Connection{}, fmt.Errorf("%s can't be connected to magpie", a.Name)
 	}
